@@ -1,3 +1,4 @@
+precious ^autom4te.cache$
 precious ^missing$
 precious ^depcomp$
 precious ^install-sh$
