@@ -1,4 +1,3 @@
-echo precious '^missing$' >> ptgen/.arch-inventory
-echo precious '^depcomp$' >> ptgen/.arch-inventory
-echo precious '^configure$' >> ptgen/.arch-inventory
-echo precious '^install-sh$' >> ptgen/.arch-inventory
+precious ^missing$
+precious ^depcomp$
+precious ^install-sh$
