@@ -5,14 +5,12 @@
 // Routine di scrittura di un immagine in formato PNG
 
 #include "ptgen.h"
-#include <getopt.h>
 #include <ctime>
 #include <cstdio>
 #include "config.h"
 
 #ifdef HAVE_LIBPNG
 #include "png.h"
-#include <ptgen.h>
 
 // The png_jmpbuf() macro, used in error handling, became available in
 // libpng version 1.0.6.  If you want to be able to run your code with older
@@ -23,10 +21,10 @@
 #  define png_jmpbuf(png_ptr) ((png_ptr)->jmpbuf)
 #endif
 
-static void user_write_data(png_structp, png_bytep, unsigned int);
+static void user_write_data(png_structp, png_bytep, unsigned long);
 static void user_flush_data(png_structp);
 
-void user_write_data(png_structp png_ptr, png_bytep data, unsigned int length)
+void user_write_data(png_structp png_ptr, png_bytep data, unsigned long length)
 {
   ostream *os = reinterpret_cast <ostream *> (png_get_io_ptr(png_ptr));
   os->write (reinterpret_cast <const char *> (data), length);
