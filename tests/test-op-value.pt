@@ -1,0 +1,10 @@
+// Replacing the value of SRC1 (entirely yellow) with that of SRC2 (which
+// is a black->white gradient) results in a black->yellow gradient.  Note
+// that high values in the HSV system are not white -- white is obtained
+// with high values AND low saturations in HSV, while in HSL (used by
+// the replace color operator) a high lightness always produces whites.
+
+let SRC1 := create image from red f(X,Y)=1 green f(X,Y)=1 blue f(X,Y)=0;
+let SRC2 := create image from f(X,Y)=X;
+
+apply SRC2 to SRC1 operation replace value

@@ -1,0 +1,8 @@
+// Test nested and unnamed functions
+
+let MAP := map [0,0.5,1] to [0,0,1];
+
+create perlin noise output range
+		    red MAP
+		    green MAP
+		    blue f(X)=(map [0,1] to [0.5,1]) (MAP(X));

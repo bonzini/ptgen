@@ -1,0 +1,8 @@
+// Remember that the darken operator works separately on each component,
+// so we keep the 0 red and green components of SRC1: the result is SRC1
+// (black -> blue)
+
+let SRC1 := create image from f(X,Y)=X;
+let SRC2 := create image from f(X,Y)=1-X;
+
+apply SRC2 to SRC1 operation darken

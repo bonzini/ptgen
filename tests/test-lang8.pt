@@ -1,0 +1,4 @@
+// Test built-in functions as function arguments
+
+let GRADIENT := create image from atan2;
+apply red rand green rand blue rand to GRADIENT

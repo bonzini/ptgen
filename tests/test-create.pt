@@ -1,0 +1,3 @@
+// A simple top-left / bottom-right gradient
+
+create image from f(X,Y)=(X+Y)/2

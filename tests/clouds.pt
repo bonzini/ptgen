@@ -1,0 +1,12 @@
+// A cloud texture is simply a Perlin noise with an appropriate palette
+
+// Define a gradient from light blue to white
+let RED := map [0,1] to [0.4,1];
+let GREEN := map [0,1] to [0.4,1];
+let BLUE := map [0,1] to [0.8,1];
+
+create perlin noise
+  output range
+    red RED
+    green GREEN
+    blue BLUE

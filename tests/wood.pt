@@ -1,0 +1,41 @@
+// Wood
+
+// Generate a series of concentric circles in the texture (coresponding to the
+// grain in wood) and to perturb using the turbulance to simulate forces on the
+// wood during growth.
+// WOOD_X_SCALE controls the ellipticness of the wood grain, set it high enough,
+// and all the grain in the wood will be parallel. For wood there are the same
+// turbulance scale and power parameters, but radial and linear turbulance can
+// be controlled. Higher radial turbulance tends to make more "star" shaped
+// grain, while higher linear turbulance can add more directionality to the
+// wood. WOOD_PERIOD controlls the density of the wood grain.  High WOOD_PERIODs
+// result in less circles; very high periods might be fine to generate sea
+// waves (check out the z parameter)
+
+let WOOD_X_SCALE := 0.8;
+let WOOD_LINEAR_SCALE := 4;
+let WOOD_RADIAL_SCALE := 16;
+let WOOD_LINEAR_POWER := 0.225;
+let WOOD_RADIAL_POWER := 0.3;
+let WOOD_PERIOD := 0.1;
+
+let RED_MAP := map [0,1] to [0.55,0.75];
+let GREEN_MAP := map [0,1] to [0.35,0.55];
+let BLUE_MAP := map [0,1] to [0,0.2];
+
+let T1_PIC := create perlin noise scale WOOD_LINEAR_SCALE;
+let T2_PIC := create perlin noise scale WOOD_RADIAL_SCALE;
+
+let X_PIC := create image from f(X,Y)=abs(X-0.5)*WOOD_X_SCALE;
+let Y_PIC := apply T1_PIC to (create image from f(X,Y)=abs(Y-0.5))
+	       operation add
+	       opacity WOOD_LINEAR_POWER;
+
+let WOOD_FUNCTION := f(TURB,X,Y)=(
+  R := hypot(X, Y) / WOOD_PERIOD + WOOD_RADIAL_POWER * TURB;
+  abs (sin (pi * R)));
+
+let WOOD_GREYSCALE := apply WOOD_FUNCTION to 
+  (create image from red T2_PIC green X_PIC blue Y_PIC);
+
+apply red RED_MAP green GREEN_MAP blue BLUE_MAP to WOOD_GREYSCALE

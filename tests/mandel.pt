@@ -1,0 +1,25 @@
+// Mandelbrot set
+
+let MAXIT := 250;
+
+let MANDEL := f(X,Y)=(N := 1;
+     ZRE := X;
+     ZIM := Y;
+     while N < MAXIT and sqr(ZRE)+sqr(ZIM) <= 4 do (
+       TMP := sqr(ZRE)-sqr(ZIM) + X;
+       ZIM := 2*ZRE*ZIM + Y;
+       ZRE := TMP;
+       N := N + 1);
+
+     if N == MAXIT then 0 else N/MAXIT);
+
+let REAL := map [0,1] to [-2.1,1.1];
+let IMAG := map [0,1] to [-1.6,1.6];
+
+let GREYSCALE := create image from f(X,Y)=MANDEL(REAL(X),IMAG(Y));
+
+let RED := map [0,0.05,0.35,1] to [0,1,1,1];
+let GREEN := map [0,0.05,0.35,1] to [0,0,1,1];
+let BLUE := map [0,0.05,0.35,1] to [0,0,0,1];
+
+apply red RED green GREEN blue BLUE to GREYSCALE

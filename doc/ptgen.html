@@ -1,0 +1,1171 @@
+<html>
+<head>
+<title>ptgen - Manuale</title>
+
+<style>
+pre { font-size: 70% };
+</style>
+</head>
+
+<body>
+<h1 align="center"><code>ptgen</code> - Procedural Texture Generator</h1>
+<h2 align="center">Paolo Bonzini</h2>
+<h3 align="center">esame di Elaborazione e Trasmissione delle Immagini</h3>
+
+<hr>
+<dir><a href="#1">Uso del programma</a></dir>
+<dir><a href="#2">Descrizione del linguaggio</a>
+  <dir><a href="#21">Struttura di un programma</a></dir>
+  <dir><a href="#22">Espressioni</a></dir>
+  <dir><a href="#23">Vettori</a></dir>
+  <dir><a href="#24">Matrici</a></dir>
+  <dir><a href="#25">Funzioni</a>
+    <dir><a href="#251">Funzioni matematiche</a></dir>
+    <dir><a href="#252">Interpolatori</a></dir>
+  </dir>
+  <dir><a href="#26">Immagini di base</a>
+    <dir><a href="#261">Rumore bianco</a></dir>
+    <dir><a href="#262">Rumore frattale</a></dir>
+    <dir><a href="#263">Definizione a partire da una formula</a></dir>
+  </dir>
+  <dir><a href="#27">Immagini derivate</a>
+    <dir><a href="#271">Composizione dei canali RGB</a></dir>
+    <dir><a href="#272">Trasformazione delle coordinate cromatiche</a></dir>
+    <dir><a href="#273">Deformazione di un'immagine preesistente</a></dir>
+    <dir><a href="#274">Conversione in greyscale di un'immagine</a></dir>
+    <dir><a href="#275">Convoluzione</a></dir>
+    <dir><a href="#276">Operatori aritmetici</a></dir>
+  </dir>
+</dir>
+<dir><a href="#3">Esempi</a>
+  <dir><a href="#31">Marmo</a></dir>
+  <dir><a href="#32">Legno</a></dir>
+  <dir><a href="#33">Insieme di Mandelbrot</a></dir>
+  <dir><a href="#34">Generazione di un paesaggio</a></dir>
+</dir>
+<dir><a href="#4">Note sull'implementazione</a></dir>
+
+<hr>
+<a name="1"></a><h1>Uso del programma</h1>
+
+<p>Il programma ha esclusivamente un'interfaccia a linea di comando. La
+sintassi della linea di comando ricalca quella delle utility standard
+Unix:</p>
+
+<pre>   ptgen OPZIONI... INPUT-FILE</pre>
+
+<p>Le opzioni disponibili sono (ciascuna opzione ha un nome lungo e uno
+breve):</p>
+
+<table border="1" cellpadding="8" width="100%">
+  <tr valign="top">
+    <td valign="top" width="10%"><pre>-o
+--output-file</pre></td>
+    <td valign="top" width="90%">Imposta il nome del file su cui
+      verr&agrave; scritta l'immagine. <code>-</code> indica lo standard
+      output, il default &egrave; <code>ptgen.ppm</code> o
+      <code>ptgen.png</code>.</td>
+  </tr>
+  <tr valign="top">
+    <td valign="top" width="10%"><pre>-f
+--file-format</pre></td>
+    <td valign="top" width="90%">Imposta il formato di file con cui
+      verr&agrave; scritta l'immagine; i possibili formati sono PPM
+      e PNG (quest'ultimo solo se al momento della compilazione era
+      disponibile la libreria <code>libpng</code>). Il default
+      &egrave; PPM.</td>
+  </tr>
+  <tr valign="top">
+    <td valign="top" width="10%"><pre>-s
+--size</pre></td>
+    <td valign="top" width="90%">Imposta la dimensione delle immagini
+      trattate dal programma; deve essere una potenza di 2. Il default
+      &egrave; 256.</td>
+  </tr>
+  <tr valign="top">
+    <td valign="top" width="10%"><pre>-S
+--seed</pre></td>
+    <td valign="top" width="90%">Imposta il seme per i numeri casuali.
+      Il default &egrave; di utilizzare un seme diverso per ogni
+      esecuzione calcolandolo dall'ora corernte.</td>
+  </tr>
+</table>
+
+<a name="2"></a><h1>Descrizione del linguaggio</h1>
+
+<a name="21"></a><h2>Struttura di un programma</h2>
+
+<p>Un programma &egrave; costituito da una serie di definizioni seguite
+da un solo comando che specifica l'immagine da scrivere sul file. Le
+definizioni possono dichiarare costanti, funzioni o immagini accessorie
+da usare per la creazione dell'immagine finale.</p>
+
+<p>Mentre la dichiarazione di funzioni serve semplicemente per dare loro
+un nome e quindi per aumentare la leggibilit&agrave; del programma, la
+dichiarazione di costanti o immagini pu&ograve; essere utile perch&eacute;
+in questo modo il calcolo viene compiuto una volta sola. Per esempio
+pu&ograve; essere utile una dichiarazione del tipo</p>
+
+<pre>   let SQRT2 := sqrt(2);</pre>
+
+<p>per calcolare la radice quadrata di 2 una volta sola.</p>
+
+<p>Come si capisce dall'esempio, la struttura delle dichiarazioni &egrave;</p>
+
+<pre>   let NOME := ESPRESSIONE;</pre>
+
+<p>Una dichiarazione <i>non</i> &egrave; una dichiarazione di variabile.
+Infatti un simbolo che compare in una dichiarazione non &egrave;
+pi&ugrave; modificabile in alcun modo. Inoltre una dichiarazione
+pu&ograve; associare un nome anche a vettori, matrici, funzioni o
+immagini, mentre le variabili propriamente dette (vedi al paragrafo
+<i>Espressioni</i>) contengono solo valori numerici. I simboli
+dichiarati devono iniziare con una lettera maiuscola.</p>
+
+<p>I comandi per la creazione di immagini hanno una sintassi che ricalca
+l'inglese, un po' come il linguaggio SQL. Come in SQL, essi iniziano con un
+verbo inglese.</p>
+
+<a name="22"></a><h2>Espressioni</h2>
+
+<p>Le espressioni calcolate da <code>ptgen</code> sono tutte in virgola
+mobile e su numeri reali. Sono supportati tutti gli operatori matematici
+comuni (<code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>,
+<code>^</code>), le funzioni matematiche (<code>cos</code>, <code>sin</code>,
+<code>tan</code>, <code>acos</code>, <code>asin</code>, <code>atan</code>,
+<code>cosh</code>, <code>sinh</code>, <code>tanh</code>, <code>exp</code>,
+<code>log</code>, <code>sqr</code>, <code>sqrt</code>, <code>abs</code>)
+e altre funzioni speciali (<code>clamp</code> che limita un valore al range
+<i>[0,1]</i>, <code>frac</code> e <code>tile</code> che generano forme a
+dente di sega e triangolari, <code>rand</code> che genera un numero casuale
+compreso tra 0 e l'argomento, <code>atan2</code> e <code>hypot</code> per
+convertire in coordinate polari, <code>min</code> e <code>max</code>). In
+realt&agrave; le espressioni possono essere veri e propri programmi di
+complessit&agrave; arbitraria; esiste infatti la possibilit&agrave; di
+usare:</p>
+
+<ul>
+  <li>sequenze di espressioni: la sintassi <code>(ESPR1; ESPR2)</code> valuta
+    le due espressioni in sequenza e ritorna il valore calcolato per
+    <code>ESPR2</code>;</li>
+  <li>variabili: una variabile &egrave; considerata dichiarata quando compare a
+    sinistra dell'operatore di assegnazione <code>:=</code>, da non confondere
+    con l'identico simbolo usato nelle dichiarazioni <code>let</code>; una
+    variabile si pu&ograve; usare in un'espressione solo dopo che &egrave;
+    stata dichiarata, ed &egrave; sempre locale ad un'espressione.</li>
+  <li>condizionali: la sintassi <code>if COND then ESPR1 else ESPR2</code>
+    valuta una sola delle due espressioni (o sequenze di espressioni), a
+    seconda del valore della condizione. All'interno della condizione possono
+    apparire gli operatori relazionali <code>&lt;</code>, <code>&lt;=</code>,
+    <code>&gt;</code>, <code>&gt;=</code>, <code>=</code>, <code>!=</code> e
+    gli operatori booleani <code>and</code>, <code>or</code>, <code>not</code>,
+    e <code>xor</code>;</li>
+  <li>cicli: la sintassi <code>while COND do LOOP</code> valuta l'espressione
+    (o sequenza di espressioni) <code>LOOP</code> fintantoch&eacute; la
+    condizione <code>COND</code> &egrave; vera. Se l'espressione viene valutata
+    almeno una volta si ritorna l'ultimo valore calcolato prima di uscire dal
+    ciclo, altrimenti si ritorna 0 (zero).</li>
+</ul>
+
+<p>Per, esempio la seguente espressione corrisponde al ciclo centrale di
+calcolo dell'insieme di Mandelbrot per il punto <i>x+iy</i> del piano
+complesso:</p>
+
+<pre>    (N := 1;
+     ZRE := X;
+     ZIM := Y;
+     while N &lt; 100 and sqr(ZRE)+sqr(ZIM) &lt;= 4 do (
+       TMP := sqr(ZRE)-sqr(ZIM) + X;
+       ZIM := 2*ZRE*ZIM + Y;
+       ZRE := TMP;
+       N := N + 1);
+
+     if N == 100 then 0 else N)</pre>
+
+<p>e ritorna il numero di iterazioni necessarie prima che la serie
+<i>z<sub>n</sub>=z<sup>2</sup><sub>n-1</sub>+c</i> diverga, o 0 se essa
+converge.</p>
+
+<a name="23"></a><h2>Vettori</h2>
+
+<p>La dichiarazione di un vettore corrisponde a pi&ugrave; espressioni
+comprese tra parentesi quadre e separate da virgole, per esempio</p>
+
+<pre>     [1,2,Y,(if X &lt; 0.5 then 0.5 else X)]</pre>
+
+<p>I vettori vengono usati per definire matrici e per definire particolari
+funzioni, gli interpolatori.</p>
+
+<a name="24"></a><h2>Matrici</h2>
+
+<p>La dichiarazione di una matrice corrisponde a pi&ugrave; vettori
+comprese tra parentesi quadre, per esempio</p>
+
+<pre>     [[1,X]
+      [Y,4]]</pre>
+
+<p>Le matrici vengono usate per applicare ad un'immagine l'operatore
+convoluzione.</p>
+
+<a name="25"></a><h2>Funzioni</h2>
+
+<p><code>ptgen</code> permette di definire due tipi di funzioni: sia
+normali funzioni che accettano parametri e il cui valore si calcola
+valutando un'espressione, sia funzioni particolari che effettuano
+interpolazioni lineari o <i>spline</i> e vengono ottimizzate dall'interprete.
+Le funzioni si possono richiamare dalle espressioni specificando una lista
+di parametri attuali, separati da virgole e racchiusi tra parentesi, dopo
+il nome della funzione.</p>
+
+<p>Le funzioni di <code>ptgen</code> possono essere usate come funzioni anonime
+(funzioni lambda) semplicemente facendo seguire la loro definizione dagli
+argomenti. Per rendere pi&ugrave; chiaro un programma che faccia uso di
+funzioni anonime, le definizioni di funzione si possono porre tra parentesi.
+Un esempio di utilizzo di funzioni anonime &egrave;</p>
+
+<pre>     (f(X,Y)=sqrt(sqr(X)+sqr(Y))) (A-0.5, B-0.5)</pre>
+
+<p>Questo pezzo di codice definisce una funzione che accetta due parametri e
+calcola la distanza dall'origine del punto che essi rappresentano, e la applica
+al punto di coordinate <code>(A-0.5,B-0.5)</code>, dove <code>A</code> e
+<code>B</code> sono variabili definite altrove.</p>
+
+<a name="251"></a><h3>Funzioni matematiche</h3>
+
+<p>Una funzione matematica &egrave; una funzione definita da un'espressione. La
+sintassi per definire una funzione matematica &egrave;</p>
+
+<pre>     f(PARAMETRI)=ESPRESSIONE</pre>
+
+<p>dove parametri &egrave; una lista di parametri formali separati da virgole.
+Come le variabili, anche i parametri formali devono iniziare con una lettera
+maiuscola.</p>
+
+<p>Importante: all'interno di una funzione anonima <i>non</i> sono disponibili
+le variabili appartenenti alla funzione che racchiude la dichiarazione.</p>
+
+<a name="252"></a><h3>Interpolatori</h3>
+
+<p>Un interpolatore &egrave; un tipo particolare di funzione a un argomento che
+pu&ograve; essere espressa in modo molto conciso e viene ottimizzata
+dall'interprete. Un interpolatore &egrave; definito da due vettori di uguale
+lunghezza, il primo dei quali rappresenta i valori dell'argomento
+dell'interpolatore e il secondo dei quali rappresenta i valori restituiti
+dall'interpolatore per i corrispondenti valori dell'interpolatore.</p>
+
+<p>Per esempio:</p>
+
+<pre>     map [0,1] to [0.5,1]</pre>
+
+<p>corrisponde nel dominio <code>[0,1] </code>alla funzione <i>y=x/2+1</i>,
+mentre</p>
+
+<pre>     map [0,0.5,1] to [1,0,1]</pre>
+
+<p>corrisponde nel dominio <code>[0,1] </code>alla funzione <i>y=2 |x-1/2|</i>
+(infatti questa definizione interpola linearmente tra 1 e 0 per
+<i>0&lt;=x&lt;=0.5</i>, e poi tra 0 e 1 per <i>0.5&lt;x&lt;1</i>), e
+infine</p>
+
+<pre>     spline map [0,0.4, 0.5, 0.6, 1]
+             to [0,  1, 0.5,   1, 0]</pre>
+
+<p>corrisponde a questa funzione:</p>
+
+<p align="center"><img border="0" src="spline.gif" width="417" height="246"></p>
+
+<p>Importante: all'interno della dichiarazione di un interpolatore definito
+come funzione anonima <i>non</i> sono disponibili le variabili appartenenti
+alla funzione che racchiude la dichiarazione.</p>
+
+<a name="26"></a><h2>Immagini di base</h2>
+
+<p><code>ptgen</code> fornisce tre operatori di base per creare immagini.
+Questi non richiedono alcun immagine come parametro, ma solo numeri o
+funzioni.</p>
+
+<a name="261"></a><h3>Rumore bianco</h3>
+
+<p>Il primo operatore &egrave; l'operatore <code>create noise</code>, che
+crea un immagine di tipo rumore bianco. All'operatore possono essere
+applicate una o tre funzioni a un argomento per variare la dinamica
+dell'immagine risultante: se viene fornita una sola funzione, questa
+verr&agrave; utilizzata per tutte e tre le componenti rosso, verde e
+blu, mentre se vengono fornite tre funzioni, queste verranno applicate
+ciascuna a una delle componenti additive.</p>
+
+<p>L'argomento delle funzioni varier&agrave; tra 0 e 1, e anche il
+risultato non pu&ograve; eccedere questi valori (altrimenti viene
+troncato a 0 o 1).</p>
+
+<p>La sintassi &egrave; (le parentesi quadre indicano elementi opzionali
+e le graffe elementi alternativi):</p>
+
+<pre>    create noise
+        [output range
+             {FUNC | red FUNC green FUNC | blue FUNC}]
+
+</pre>
+
+<table border="1" cellpadding="8" width="100%">
+  <tr valign="top">
+    <td valign="top"><img border="1" src="noise1.png"></td>
+    <td valign="top">
+      <pre>create noise</pre>
+      
+      <p>Questo &egrave; il pi&ugrave; semplice programma che
+        <code>ptgen</code> pu&ograve; interpretare, e crea un
+        rumore bianco a livelli di grigio.</p>
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <td valign="top"><img border="1" src="noise2.png"></td>
+    <td valign="top">
+      <pre>let MAP := map [0,0.5,   0.5,1]
+	   to  [0,0,     1,1];
+
+create noise output range MAP </pre>
+
+      <p>Questo programma usa un interpolatore per creare una funzione
+        gradino, che <code>ptgen</code> applica per creare un rumore
+        bianco monocromatico.
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <td valign="top"><img border="1" src="noise3.png"></td>
+    <td valign="top">
+      <pre>let RED_MAP := f(X)=0;
+let GREEN_MAP := map [0,1] to [0,1];
+let BLUE_MAP := map [0,1] to [1,0];
+
+create noise output range red RED_MAP green GREEN_MAP blue BLUE_MAP</pre>
+
+      <p>In questo caso vengono usate tre funzioni di uscita: si vede come
+        funzioni matematiche (<code>RED_MAP</code>) e interpolatori siano
+        completamente interscambiabili.  Per un ingresso pari a zero le
+        tre funzioni generano un colore blu, per un ingresso pari a 1
+        invece esse generano il verde; il rumore bianco generato
+        quindi avr&agrave; colori variabili tra blu e verde.</p>
+    </td>
+  </tr>
+</table>
+
+<a name="262"></a><h3>Rumore frattale</h3>
+<p>Un secondo operatore <code>create perlin noise</code> crea un'immagine di
+tipo rumore frattale. Come nel caso precedente possono essere applicate una o
+tre funzioni a un argomento per variare la dinamica dell'immagine risultante;
+inoltre si pu&ograve; definire la <i>scala</i> del rumore frattale generato,
+ovvero il numero di ottave sommate per generare l'immagine. Il default &egrave;
+1 che corrisponde a <i>log<sub>2</sub> n/2</i> ottave, dove <i>n</i> &egrave;
+la dimensione dell'immagine; raddoppiare la scala elimina l'ottava a frequenza
+pi&ugrave; bassa, aumentando cos&igrave; la componente casuale del rumore.</p>
+
+<p>La sintassi &egrave;:</p>
+<pre>    create perlin noise
+        [scale EXPR]
+        [output range
+             {FUNC | red FUNC green FUNC | blue FUNC}]
+
+</pre>
+
+<table border="1" cellpadding="8" width="100%">
+  <tr valign="top">
+    <td valign="top"><img border="1" src="perlin.png"></td>
+    <td valign="top">
+      <pre>create perlin noise</pre>
+      
+      <p>Questo &egrave; l'aspetto del rumore frattale.</p>
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <td valign="top"><img border="1" src="clouds.png"></td>
+    <td valign="top">
+      <pre>let RED := map [0,1] to [0.4,1];
+let GREEN := map [0,1] to [0.4,1];
+let BLUE := map [0,1] to [0.8,1];
+
+create perlin noise
+  output range
+    red RED
+    green GREEN
+    blue BLUE</pre>
+      
+      <p>E' sufficiente mappare l'uscita del rumore frattale su una
+      sfumatura da azzurro a bianco per ottenere una texture a "nuvole".</p>
+    </td>
+  </tr>
+</table>
+
+<a name="263"></a><h3>Definizione a partire da una formula</h3>
+
+<p>L'ultimo operatore di base utilizza una o tre funzioni a due argomenti per
+generare un'immagine. Per ciascun pixel verranno passate alle funzioni le
+coordinate <i>x</i> ed <i>y</i>, normalizzate tra 0 e 1 in modo che il
+comportamento del programma sia indipendente dalla dimensione dell'immagine
+generata. Se si fornisce una sola funzione, l'immagine generata sar&agrave;
+a scala di grigi, altrimenti sar&agrave; a colori.</p>
+
+<p>La sintassi &egrave;:</p>
+
+<pre>    create image from
+        {FUNC | red FUNC green FUNC | blue FUNC}
+
+</pre>
+
+<table border="1" cellpadding="8" width="100%">
+  <tr valign="top">
+    <td valign="top"><img border="1" src="create.png"></td>
+    <td valign="top">
+      <pre>create image from f(X,Y)=(X+Y)/2</pre>
+      
+      <p>Questo programma genera una semplice sfumatura diagonale dall'angolo
+        in alto a sinistra (dove la funzione vale 0) a quello in basso a
+        destra (dove vale 1).</p>
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <td valign="top"><img border="1" src="linear.png"></td>
+    <td valign="top">
+      <pre>let LINEAR := map [0,0.4,0.5,0.6,1] to [0,0.9,1,0.9,0];
+create image from f(X,Y)=(LINEAR(X)+LINEAR(Y))/2</pre>
+      
+      <p>Ecco la differenza tra un interpolatore lineare...</p>
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <td valign="top"><img border="1" src="spline.png"></td>
+    <td valign="top">
+      <pre>let SPLINE := spline map [0,0.4,0.5,0.6,1] to [0,0.9,1,0.9,0];
+create image from f(X,Y)=(SPLINE(X)+SPLINE(Y))/2</pre>
+ 
+      <p>... e uno basato su <i>spline</i>.</p>
+    </td>
+  </tr>
+</table>
+
+
+<a name="27"></a><h2>Immagini derivate</h2>
+
+<p>Altri operatori forniti da <code>ptgen</code> permettono di operare in vari
+modi su immagini gi&agrave; create.</p>
+
+<p>Per specificare un immagine si pu&ograve; utilizzare un nome gi&agrave;
+dichiarato tramite <code>let</code>, oppure inserire un altro operatore tra
+parentesi.</p>
+
+<a name="271"></a><h3>Composizione dei canali RGB</h3>
+
+<p>Questo &egrave; il primo operatore che accetta altre immagini. Esso utilizza
+tre immagini in ingresso e fornisce in uscita un'immagine che utilizza il
+canale rosso della prima, il canale verde della seconda, e il canale blu della
+terza.</p>
+
+<pre>    create image from
+        red IMAGE green IMAGE blue IMAGE
+
+</pre>
+
+<p>Nonostante la (voluta) somiglianza tra la sintassi di questo operatore e
+quella del precedente, &egrave; importante sottolineare che non &egrave; mai
+possibile utilizzare un'immagine come funzione. Questo operatore in altre
+parole accetta tre immagini e il precedente accetta tre funzioni, ma queste
+sono le due sole possibilit&agrave;. Non esiste un operatore che accetti due
+immagini e una funzione, o un'immagine e due funzioni.</p>
+
+<table border="1" cellpadding="8" width="100%">
+  <tr valign="top">
+    <td valign="top"><img border="1" src="compose.png"></td>
+    <td valign="top">
+      <pre>let RED_NOISE := create noise;
+let GREEN_NOISE := create noise;
+let BLUE_NOISE := create noise;
+
+create image from red RED_NOISE green GREEN_NOISE blue BLUE_NOISE</pre>
+
+      <p>Questo programma compone tre diverse immagini di tipo rumore bianco
+      per ottenere un rumore bianco non pi&ugrave; grigio ma a colori.</p>
+    </td>
+  </tr>
+</table>
+
+
+<a name="272"></a><h3>Trasformazione delle coordinate cromatiche</h3>
+
+<p>Un altro operatore permette di applicare una o tre funzioni per variare
+la dinamica dell'immagine passata come parametro, un po' come accade per
+l'output di <code>create noise</code>: se viene fornita una sola funzione,
+questa verr&agrave; utilizzata per tutte e tre le componenti rosso, verde
+e blu, mentre se vengono fornite tre funzioni, queste verranno applicate
+ciascuna a una delle componenti additive.
+
+Le funzioni inoltre possono accettare una o tre argomenti. Una funzione a tre
+argomenti accetta le tre componenti rosso/verde/blu, mentre ad una funzione a
+un argomento (come per esempio un interpolatore) viene passata la componente
+in esame.</p>
+
+<pre>    apply
+        {FUNC|red FUNC green FUNC blue FUNC}
+        to IMAGE
+
+</pre>
+
+<table border="1" cellpadding="8" width="100%">
+  <tr valign="top">
+    <td valign="top"><img border="1" src="colormap.png"></td>
+    <td valign="top">
+      <pre>let RED_MAP := map [0,0.5,1] to [0,1,1];
+let GREEN_MAP := map [0,1] to [0,0];
+let BLUE_MAP := map [0,0.5,1] to [0,0,1];
+
+apply
+  red RED_MAP
+  green GREEN_MAP
+  blue BLUE_MAP
+  to (create image from f(X,Y)=(X+Y)/2)</pre>
+  
+      <p>In questo caso la sfumatura da bianco a nero viene trasformata in una
+      da bianco a rosso a viola. Gli interpolatori funzionano come funzioni a
+      un argomento.</p>
+    </td>
+  </tr>
+</table>
+
+
+<a name="273"></a><h3>Deformazione di un'immagine preesistente</h3>
+
+<p>Un'altra versione dell'operatore <code>apply</code> permette di
+rimappare una porzione di un'immagine su di un'altra, tramite due
+funzioni a due argomenti che forniscono le coordinate del punto
+da utilizzare dell'immagine sorgente.</p>
+
+<pre>    apply
+        x FUNC
+        y FUNC
+        to IMAGE
+
+</pre>
+
+<table border="1" cellpadding="8" width="100%">
+  <tr valign="top">
+    <td valign="top"><img border="1" src="apply.png"><br><br>
+      <img border="1" src="create.png"></td>
+    <td valign="top">
+      <pre>let PING_PONG := map [0,0.5,1]
+		 to  [0,1,  0];
+
+apply
+  x f(X,Y)=PING_PONG(X)
+  y f(X,Y)=PING_PONG(Y)
+  to (create image from f(X,Y)=(X+Y)/2)</pre>
+  
+      <p>L'interpolatore <code>PING_PONG</code> produce in uscita prima i
+      valori da 0 e 1 e poi di nuovo i valori da 1 a 0. Il risultato quindi
+      corrisponde a una versione a simmetria orizzontale e verticale della
+      sfumatura prodotta da un esempio precedente.</p>
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <td valign="top"><img border="1" src="whirl.png"><br><br>
+       <img border="1" src="whirl-base.png"></td>
+    <td valign="top">
+      <pre>let BASE := create image from f(X,Y)=min(tile(2*X),tile(2*Y));
+
+let ANGLE := f(X,Y)=8*hypot(X,Y);
+
+let WHIRLY := apply
+  x f(X,Y)=(XX:=X-0.5; YY:=Y-0.5; A:=ANGLE(XX,YY); 0.5+cos(A)*XX-sin(A)*YY)
+  y f(X,Y)=(XX:=X-0.5; YY:=Y-0.5; A:=ANGLE(XX,YY); 0.5+sin(A)*XX+cos(A)*YY)
+  to BASE;
+
+apply
+  red map[0,0.3,0.8,1] to[0,0,0.8,1]
+  green map[0,0.3,0.8,1] to [0,0,1,1]
+  blue map[0,0.3,0.8,1] to [0,0.8,1,1]
+  to WHIRLY;</pre>
+  
+      <p>La seconda immagine (<code>BASE</code>) viene ruotata intorno al
+      centro (vedi variabili <code>XX</code> e <code>YY</code>) di un angolo
+      proporzionale alla distanza dal centro stesso
+      (funzione <code>ANGLE</code>).</p>
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <td valign="top"><img border="1" src="sine.png"><br><br>
+       <img border="1" src="sine-base.png"></td>
+    <td valign="top">
+      <pre>
+let BASE := create image from f(X,Y)=(sin(pi*4*X)+cos(pi*7*Y)+2)/4;
+
+let DISTORT := apply
+  x f(X,Y)=tile(X+sin(3*Y))
+  y f(X,Y)=tile(Y+cos(3*X))
+  to BASE;
+
+apply
+  red map[0,0.3,0.8,1] to [0,0,1,1]
+  green map[0,0.3,0.8,1] to[0,0,0.8,1]
+  blue map[0,0.3,0.8,1] to [0,0.5,0.5,0]
+  to DISTORT;</pre>
+  
+      <p>Le righe e le colonne della seconda immagine (<code>BASE</code>)
+      vengono spostate secondo una funzione seno o coseno.  La funzione
+      <code>tile</code> produce una forma triangolare che varia tra 0 e 1
+      e viene usata per evitare discontinuit&agrave; tra il lato sinistro
+      e quello destro della seconda immagine.</p>
+    </td>
+  </tr>
+</table>
+
+
+<a name="274"></a><h3>Conversione in greyscale di un'immagine</h3>
+
+<p>Un operatore molto semplice e senza opzioni permette di convertire
+un'immagine a colori in una a scala di grigi. La sintassi &egrave;</p>
+
+<pre>    create greyscale image from IMAGE
+
+</pre>
+
+<table border="1" cellpadding="8" width="100%">
+  <tr valign="top">
+    <td valign="top"><img border="1" src="greyscale.png"></td>
+    <td valign="top">
+      <pre>let NOISE := create noise output range red map [0,1] to [0,0]
+				       green map [0,1] to [0,1]
+				       blue map [0,1] to [0,0];
+
+create greyscale image from NOISE</pre>
+
+      <p>L'effetto dell'operatore &egrave; in realt&agrave; poco chiare.
+      Dato che l'immagine di partenza &egrave; virata sul verde, il
+      risultato &egrave; pi&ugrave; scuro che quello di un semplice
+      comando <code>create noise</code>.</p>
+    </td>
+  </tr>
+</table>
+
+
+<a name="275"></a><h3>Convoluzione</h3>
+
+<p>Quest'ultimo operatore permette di effettuare una convoluzione tra
+un'immagine e una matrice. Al risultato si pu&ograve; applicare un fattore
+di scala e sommare un valore costante.</p>
+
+<p>La matrice di partenza non deve necessariamente essere quadrata; in questo
+modo si possono implementare efficientemente filtri separabili. Tuttavia essa
+deve avere un numero dispari di righe e di colonne. I pixel di bordo vengono
+processati per riflessione.</p>
+
+<p>La sintassi &egrave;</p>
+
+<pre>    convolve IMAGE
+        with MATRIX
+        [scale NUMBER]
+        [bias NUMBER]
+
+</pre>
+
+<table border="1" cellpadding="8" width="100%">
+  <tr valign="top">
+    <td valign="top"><img border="1" src="convolve.png"></td>
+    <td valign="top">
+      <pre>let MAP := map [0,0.4,0.5,0.6,1] to [0,0,1,0,0];
+let CIRCLE := create image from f(X,Y)=(
+  DIST := hypot (XM,YM) * sqrt(2);
+  MAP(DIST));
+
+convolve CIRCLE 
+    with [[-1,0,0,0,0]
+          [0,-1,0,0,0]
+          [0, 0,0,0,0]
+          [0, 0,0,1,0]
+          [0, 0,0,0,1]]
+    scale 2
+    bias 0.5;</pre>
+    
+      <p>In questo caso l'immagine di partenza &egrave; un anello grande come
+      met&agrave; dell'immagine.  <code>convolve</code> viene usato come
+      filtro passa alto.</p>
+    </td>
+  </tr>
+</table>
+
+
+
+<a name="276"></a><h3>Operatori aritmetici</h3>
+
+<p>Una vasta gamma di effetti si pu&ograve; infine ottenere tramite questo
+operatore che compie operazioni aritmetiche tra due immagini, con la
+possibilit&agrave; di specificare un fattore di trasparenza.</p>
+
+<p>La sintassi &egrave;</p>
+
+<pre>    apply TOP_IMAGE to SRC_IMAGE
+        [operation OP]
+        [opacity NUMBER]</pre>
+
+<p>Dopo aver effettuato l'operazione aritmetica, l'immagine
+<code>SRC_IMAGE</code> ed il risultato vengono miscelati in ragione
+del fattore di trasparenza, che deve essere compreso tra 0 ed 1: se
+<code>NUMBER</code> &egrave; 1 (o non &egrave; specificato) l'immagine
+prodotta &egrave; uguale al risultato dell'operazione, se &egrave; 0
+l'immagine prodotta &egrave; uguale all'immagine di partenza.</p>
+
+<p>L'operazione &egrave; una di queste:</p>
+
+<table border="1" cellpadding="8" width="100%">
+  <tr valign="top">
+    <td valign="top"><img border="1" src="op-blend.png"></td>
+    <td valign="top">
+      <pre>let SRC1 := create image from red f(X,Y)=0 green f(X,Y)=0 blue f(X,Y)=X;
+let SRC2 := create image from red f(X,Y)=1 green f(X,Y)=1 blue f(X,Y)=X;
+
+apply SRC2 to SRC1 opacity 0.7</pre>
+
+      <p><i>blend</i> &egrave; il valore di default e miscela le due immagini
+      secondo il fattore specificato senza applicare alcuna operazione
+      aritmetica.  Occorre specificare il fattore di trasparenza,
+      perch&eacute; il valore di default semplicemente mostra l'immagine
+      <code>TOP_IMAGE</code>.</p>
+      
+      <p>In questo caso viene miscelata una sfumatura da nero a blu con una da
+      giallo a bianco, mostrando il 70% della prima e il 30% della seconda.</p>
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <td valign="top"><img border="1" src="op-dissolve.png"></td>
+    <td valign="top">
+      <pre>let SRC1 := create image from red f(X,Y)=0 green f(X,Y)=0 blue f(X,Y)=X;
+let SRC2 := create image from red f(X,Y)=1 green f(X,Y)=1 blue f(X,Y)=X;
+
+apply SRC2 to SRC1 operation dissolve opacity 0.7</pre>
+
+      <p>Anche <i>dissolve</i> miscela le due immagini secondo il fattore
+      specificato senza applicare alcuna operazione aritmetica. Tuttavia,
+      invece che effettuare la miscelazione per ogni pixel, <code>ptgen</code>
+      sceglie casualmente da quale delle due immagini prelevare il pixel.
+      Anche in questo caso occorre specificare il fattore di trasparenza,
+      perch&eacute; il valore di default semplicemente mostra l'immagine
+      <code>TOP_IMAGE</code>.
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <td valign="top"><img border="1" src="op-hue.png"></td>
+    <td valign="top">
+      <pre>let SRC1 := create image from red f(X,Y)=0 green f(X,Y)=0 blue f(X,Y)=X;
+let SRC2 := create image from red f(X,Y)=1 green f(X,Y)=1 blue f(X,Y)=0;
+
+apply SRC2 to SRC1 operation replace hue</pre>
+
+      <p><i>replace hue</i> preleva la tinta dall'immagine
+      <code>TOP_IMAGE</code> e mantiene il valore e la saturazione di
+      <code>SRC_IMAGE</code>. In questo caso applica una tinta gialla a
+      una sfumatura da nero a blu, ottenendo come risultato una sfumatura
+      da nero a giallo.</p>
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <td valign="top"><img border="1" src="op-sat.png"></td>
+    <td valign="top">
+      <pre>
+let SRC1 := create image from red f(X,Y)=X green f(X,Y)=X blue f(X,Y)=0;
+let SRC2 := create image from f(X,Y)=0.5;
+
+apply SRC2 to SRC1 operation replace saturation</pre>
+
+      <p><i>replace saturation</i> preleva la saturazione dall'immagine
+      <code>TOP_IMAGE</code> e mantiene il valore e la tinta di
+      <code>SRC_IMAGE</code>. In questo caso applica saturazione nulla ad
+      una sfumatura da nero a giallo, ottenendo come risultato una
+      sfumatura da nero a bianco (che nel sistema HSV hanno
+      saturazione nulla).
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <td valign="top"><img border="1" src="op-value.png"></td>
+    <td valign="top">
+      <pre>let SRC1 := create image from red f(X,Y)=1 green f(X,Y)=1 blue f(X,Y)=0;
+let SRC2 := create image from f(X,Y)=X;
+
+apply SRC2 to SRC1 operation replace value</pre>
+
+      <p><i>replace value</i> preleva il valore dall'immagine
+      <code>TOP_IMAGE</code> e mantiene la saturazione e la tinta di
+      <code>SRC_IMAGE</code>. In questo caso applica ad un'immagine
+      interamente gialla il valore di una sfumatura da nero a bianco,
+      ottenendo come risultato una sfumatura da nero a giallo.  Al
+      contrario che nel sistema HLS (usato dall'operatore successivo,
+      <i>replace color</i>), valori alti della componente V non producono
+      il bianco ma il colore puro, per cui il risultato &egrave; una
+      sfumatura da bianco a giallo.
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <td valign="top"><img border="1" src="op-color.png"></td>
+    <td valign="top">
+      <pre>let SRC1 := create image from red f(X,Y)=X green f(X,Y)=X blue f(X,Y)=X;
+let SRC2 := create image from red f(X,Y)=1 green f(X,Y)=1 blue f(X,Y)=0;
+
+apply SRC2 to SRC1 operation replace color</pre>
+
+      <p><i>replace color</i> preleva la tinta e la saturazione dall'immagine
+      <code>TOP_IMAGE</code> e mantiene la luminosit&agrave; di
+      <code>SRC_IMAGE</code>. In questo caso applica un'immagine interamente
+      gialla ad una sfumatura da nero a bianco, ottenendo come risultato una
+      sfumatura da nero a giallo a bianco. Infatti valori alti della componente
+      L producono il bianco.</p>
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <td valign="top"><img border="1" src="op-darken.png"></td>
+    <td valign="top">
+      <pre>let SRC1 := create image from f(X,Y)=X;
+let SRC2 := create image from f(X,Y)=1-X;
+
+apply SRC2 to SRC1 operation darken</pre>
+
+      <p><i>darken</i> prende per ogni pixel quello pi&ugrave; scuro tra le due
+      immagini.</p></td>
+  </tr>
+
+  <tr valign="top">
+    <td valign="top"><img border="1" src="op-lighten.png"></td>
+    <td valign="top">
+      <pre>let SRC1 := create image from f(X,Y)=X;
+let SRC2 := create image from f(X,Y)=1-X;
+
+apply SRC2 to SRC1 operation lighten</pre>
+
+      <p><i>lighten</i> prende per ogni pixel quello pi&ugrave; chiaro tra le
+      due immagini.</p></td>
+  </tr>
+
+  <tr valign="top">
+    <td valign="top"><img border="1" src="op-add.png"></td>
+    <td valign="top">
+      <pre>let SRC1 := create image from red f(X,Y)=0 green f(X,Y)=0 blue f(X,Y)=X;
+let SRC2 := create image from red f(X,Y)=1 green f(X,Y)=1 blue f(X,Y)=X;
+
+apply SRC2 to SRC1 operation add</pre>
+
+      <p><i>add</i> somma le due immagini. L'eventuale saturazione a 1 del
+      valore risultante viene effettuata dopo l'operazione di miscelazione. In
+      questo caso la somma delle due componenti blu satura a met&agrave;
+      immagine, per cui la parte destra &egrave; interamente bianca.</p>
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <td valign="top"><img border="1" src="op-subtract.png"></td>
+    <td valign="top">
+      <pre>let SRC1 := create image from red f(X,Y)=0 green f(X,Y)=1 blue f(X,Y)=1;
+let SRC2 := create image from red f(X,Y)=1 green f(X,Y)=0 blue f(X,Y)=X*2;
+
+apply SRC2 to SRC1 operation subtract</pre>
+
+      <p><i>subtract</i> sottrae le due immagini. L'eventuale saturazione a 0
+      del valore risultante viene effettuata dopo l'operazione di miscelazione.
+      In questo caso la sottrazione delle due componenti blu satura a
+      met&agrave; immagine, per cui la met&agrave; destra dell'immagine
+      &egrave; omogeneamente verde.</p>
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <td valign="top"><img border="1" src="op-diff.png"></td>
+    <td valign="top">
+      <pre>let SRC1 := create image from red f(X,Y)=0 green f(X,Y)=1 blue f(X,Y)=0.5;
+let SRC2 := create image from red f(X,Y)=0 green f(X,Y)=0 blue f(X,Y)=X;
+
+apply SRC2 to SRC1 operation difference</pre>
+
+      <p><i>difference</i> sottrae le due immagini e ne tiene il valore
+      assoluto. Non pu&ograve; quindi esserci saturazione. In questo caso i
+      valori della componente blu dopo la sottrazione variano tra 0.5 e -0.5;
+      l'operazione di valore assoluto produce la doppia sfumatura da ciano a
+      verde e di nuovo da verde a ciano.</p>
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <td valign="top"><img border="1" src="op-mult.png"></td>
+    <td valign="top">
+      <pre>let SRC1 := create image from red f(X,Y)=X green f(X,Y)=X blue f(X,Y)=X;
+let SRC2 := create image from red f(X,Y)=X green f(X,Y)=1-X blue f(X,Y)=X;
+
+apply SRC2 to SRC1 operation multiply</pre>
+
+      <p><i>multiply</i> moltiplica tra di loro le due immagini. L'immagine
+      risultante &egrave; sempre pi&ugrave; scura di entrambe le immagini
+      sorgente.</p>
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <td valign="top"><img border="1" src="op-screen.png"></td>
+    <td valign="top">
+      <pre>let SRC1 := create image from red f(X,Y)=X green f(X,Y)=X blue f(X,Y)=X;
+let SRC2 := create image from red f(X,Y)=X green f(X,Y)=1-X blue f(X,Y)=X;
+
+apply SRC2 to SRC1 operation screen</pre>
+
+      <p><i>screen</i> &egrave; il negativo della moltiplicazione dei due
+      negativi. L'immagine risultante &egrave; sempre pi&ugrave; chiara di
+      entrambe le immagini sorgente.</p>
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <td valign="top"><img border="1" src="op-overlay.png"></td>
+    <td valign="top">
+      <pre>let SRC1 := create image from red f(X,Y)=X green f(X,Y)=X blue f(X,Y)=X;
+let SRC2 := create image from red f(X,Y)=X green f(X,Y)=1-X blue f(X,Y)=X;
+
+apply SRC2 to SRC1 operation overlay</pre>
+
+      <p>L'operatore <i>overlay</i> &egrave; ha un effetto piuttosto complesso:
+      esso si comporta come <i>multiply</i> quando l'immagine di partenza
+      <code>SRC_IMAGE</code> &egrave; scura (a sinistra), e come <i>screen</i>
+      quando essa &egrave; chiara (a destra).
+
+      Questo esempio rende abbastanza chiaro il suo funzionamento. In questo
+      caso viene applicata una sfumatura da verde a porpora su una da nero a
+      bianco, e il risultato &egrave; simile a quello dell'operatore
+      <i>replace color</i>.</p>
+    </td>
+  </tr>
+</table>
+
+
+
+<a name="1"></a><h1>Esempi</h1>
+
+<a name="31"></a><h2>Marmo</h2>
+<table border="1" cellpadding="8" width="100%">
+  <tr valign="top">
+    <td valign="top"><img border="1" src="marble1.png"></td>
+    <td valign="top">
+      <p>Per produrre il marmo si parte da una serie di strisce verticali
+      (prodotte da una funzione seno) e si applica un rumore frattale per
+      deformarle. Si usa un trucco per simulare una funzione di <i>x</i>, di
+      <i>y</i> e del rumore frattale: si assegnano questi ai tre canali di
+      un'immagine e poi si lavora su questa.</p>
+
+      <pre>let MARB_SCALE := 8;     // Pi&ugrave; &egrave; basso, pi&ugrave; le venature si attorcigliano
+let MARB_POWER := 0.35;   // Pi&ugrave; &egrave; alto, pi&ugrave; le venature sono nette
+let MARB_PERIOD := 2;     // Pi&ugrave; &egrave; basso, minore &egrave; lo spazio tra le venature
+
+let TURBULENCE_PIC := create perlin noise scale MARB_SCALE;
+let X_PIC := create image from f(X,Y)=X;
+let Y_PIC := create image from f(X,Y)=Y;
+
+let MARBLE_FUNCTION := f(DELTA,X,Y) =
+  abs (sin (pi * (Y / MARB_PERIOD - MARB_POWER * DELTA)));
+
+apply MARBLE_FUNCTION to
+  (create image from
+    red TURBULENCE_PIC
+    green X_PIC
+    blue Y_PIC);</pre>
+    </td>
+  </tr>
+
+  <tr valign="top">
+    <td valign="top"><img border="1" src="marble2.png"></td>
+    <td valign="top">
+      <p>Cambiando i parametri l'effetto &egrave; opposto:</p>
+      
+      <pre>let MARB_SCALE := 1;
+let MARB_POWER := 4.5;
+let MARB_PERIOD := 0.3;</pre>
+    </td>
+  </tr>
+</table>
+
+<a name="32"></a><h2>Legno</h2>
+<table border="1" cellpadding="8" width="100%">
+  <tr valign="top">
+    <td valign="top"><img border="1" src="wood.png"></td>
+    <td valign="top">
+      <p>Il legno &egrave; abbastanza simile al marmo, ma le strisce non sono
+      verticali ma radiali. La turbolenza si pu&ograve; controllare radialmente
+      e linearmente. Aumentare la turbolenza lineare deforma gli anelli, mentre
+      aumentare la turbolenza radiale li rende di forma stellata.
+
+      Le immagini <code>X_PIC</code> e <code>Y_PIC</code> sono spostate
+      sul centro dell'immagine per evitare effetti di saturazione.</p>
+      
+      <pre>let WOOD_X_SCALE := 0.8;
+let WOOD_LINEAR_SCALE := 4;
+let WOOD_RADIAL_SCALE := 16;
+let WOOD_LINEAR_POWER := 0.225;
+let WOOD_RADIAL_POWER := 0.3;
+let WOOD_PERIOD := 0.1;
+
+let T1_PIC := create perlin noise scale WOOD_LINEAR_SCALE;
+let T2_PIC := create perlin noise scale WOOD_RADIAL_SCALE;
+let X_PIC := create image from f(X,Y)=abs(X-0.5)*WOOD_X_SCALE;
+let Y_PIC := apply T1_PIC to (create image from f(X,Y)=abs(Y-0.5))
+               operation add
+               opacity WOOD_LINEAR_POWER;
+
+let WOOD_FUNCTION := f(TURB,X,Y)=(
+  R := hypot(X, Y) / WOOD_PERIOD - WOOD_RADIAL_POWER * TURB;
+  abs (sin (pi * R)));
+
+let WOOD_GREYSCALE := apply WOOD_FUNCTION to 
+  (create image from red T2_PIC green X_PIC blue Y_PIC);</pre>
+
+      <p>Per produrre l'immagine finale si applica una colorazione da marrone
+      scuro a marrone chiaro:</p>
+
+      <pre>let RED_MAP := map [0,1] to [0.55,0.75];
+let GREEN_MAP := map [0,1] to [0.35,0.55];
+let BLUE_MAP := map [0,1] to [0,0.2];
+apply red RED_MAP green GREEN_MAP blue BLUE_MAP to WOOD_GREYSCALE</pre>
+    </td>
+  </tr>
+</table>
+
+
+<a name="33"></a><h2>Insieme di Mandelbrot</h2>
+<table border="1" cellpadding="8" width="100%">
+  <tr valign="top">
+    <td valign="top"><img border="1" src="mandel.png"></td>
+    <td valign="top">
+      <p>Questa texture che disegna l'insieme di Mandelbrot mostra la
+      possibilit&agrave; di usare <code>ptgen</code> per scrivere velocemente
+      prototipi di programmi che generano immagini prima di passare ad altri
+      linguaggi, quasi come in un linguaggio di scripting.</p>
+      
+      <pre>let MANDEL := f(X,Y)=(N := 1;
+     ZRE := X;
+     ZIM := Y;
+     while N < 100 and sqr(ZRE)+sqr(ZIM) <= 4 do (
+       TMP := sqr(ZRE)-sqr(ZIM) + X;
+       ZIM := 2*ZRE*ZIM + Y;
+       ZRE := TMP;
+       N := N + 1);
+
+     if N == 100 then 0 else N/100);
+
+let REAL := map [0,1] to [-2.5,1.5];
+let IMAG := map [0,1] to [-2,2];
+
+let GREYSCALE := create image from f(X,Y)=MANDEL(REAL(X),IMAG(Y));
+
+let RED := map [0,0.05,0.65,1] to [0,1,1,1];
+let GREEN := map [0,0.05,0.65,1] to [0,0,1,1];
+let BLUE := map [0,0.05,0.65,1] to [0,0,0,1];
+
+apply red RED green GREEN blue BLUE to GREYSCALE</pre>
+    </td>
+  </tr>
+</table>
+
+<a name="34"></a><h2>Generazione di un paesaggio</h2>
+<table border="1" cellpadding="8" width="100%">
+  <tr valign="top">
+    <td valign="top"><img border="1" src="planet.png"></td>
+    <td valign="top">
+       <p>Per prima cosa viene creata la mappa 2D del pianeta, colorata in modo
+       da creare nuvole sul mare e dare un colore grigio o marrone alla
+       terra:</p>
+
+<pre>let HEIGHTS :=               [0,0.2,0.4,0.5,0.5,0.6,0.6, 0.9, 0.9,1];
+let MAP := create perlin noise scale 2 output range
+	 red map HEIGHTS to   [1,1  ,0,  0,  0.3,0.7,0.75,0.55,0.6,1]
+	 green map HEIGHTS to [1,1  ,0,  0,  0.3,0.7,0.55,0.35,0.6,1]
+	 blue map HEIGHTS to  [1,1  ,0.5,0.5,0.3,0.7,0.2, 0,   0.6,1];
+
+</pre>
+
+      <p>Il passo successivo è di creare l'ombra (usando la legge di Lambert)
+      ed applicarla alla mappa:</p>
+
+<pre>let SHADOW := create image from f(X,Y)=1-max(cos(Y*pi),0);
+let SHADED := apply SHADOW to MAP operation multiply;</pre>
+
+      <p>Per mappare sulla sfera il paesaggio, occorre dedurre gli angoli in
+      coordinate sferiche dalle coordinate <i>x</i>, <i>y</i> e <i>z</i> (che
+      variano da -1 a 1).  Le seguenti formule si basano sul fatto che
+      <i>x=cos(theta) sin(phi)</i>, <i>y=cos(theta) cos(phi)</i>,
+      <i>z=sin(theta)</i>.</p>
+
+<pre>let PHI := f(X,Y,Z)=atan2(X,Y);
+let THETA := f(X,Y,Z)=atan2(hypot(X,Y),Z);
+let Y := f(X,Z)=sqrt(1-sqr(X)-sqr(Z));</pre>
+
+      <p>Questo complesso operatore <i>apply</i> prende un punto dalla mappa
+      bidimensionale, utilizzando <i>theta</i> e <i>phi</i> (meridiano e
+      parallelo) come coordinate nella mappa; fuori dalla sfera unitaria
+      i punti saranno neri (dopo aver aggiunto l'ombra l'origine &egrave;
+      nera):</p>
+
+<pre>let PLANET := apply x f(XX,ZZ)=(
+         X := 2*XX-1; Z := 2*ZZ-1;
+         if hypot(X,Z)>1 then 0 else 0.5+THETA(X,Y(X,Z),Z)/pi/2)
+      y f(XX,ZZ)=(
+         X := 2*XX-1; Z := 2*ZZ-1;
+         if hypot(X,Z)>1 then 0 else 0.5+PHI(X,Y(X,Z),Z)/pi/2)
+      to SHADED;</pre>
+
+      <p>Infine si aggiungono le stelle al di fuori della sfera unitaria:</p>
+
+<pre>let STARS := create image from f(XX,ZZ)=(
+         X := 2*XX-1; Z := 2*ZZ-1;
+         if hypot(X,Z)>1 and rand(1)>0.995
+	   then rand(1)/2+0.5 else 0);
+
+apply STARS to PLANET operation add</pre>
+    </td>
+  </tr>
+</table>
+
+
+<a name="4"></a><h1>Note sull'implementazione</h1>
+
+<p>Il programma &egrave; scritto in C++, utilizzando <i>flex</i> e <i>bison</i>
+per l'analisi lessicale e sintattica dell'input. La valutazione delle
+espressioni viene fatta semplicemente visitando l'albero dell'espressione che
+viene prodotto dall'analizzatore sintattico.</p>
+
+<p>Le gerarchie di classi principali sono cinque:</p>
+
+<ul>
+  <li><i>ptgen_function</i>: funzioni, comprende funzioni e interpolatori</li>
+  <li><i>interpolator</i>: interpolatori, lineari e spline</li>
+  <li><i>expression</i>: espressioni matematiche</li>
+  <li><i>predicate</i>: espressioni booleane</li>
+  <li><i>image</i>: algoritmi di generazione delle immagini</li>
+</ul>
+
+<p>Le definizioni delle immagini producono in pratica un grafo diretto aciclico
+che viene poi visitato seguendo un ordinamento topologico. Anche se le immagini
+vengono cancellate quando tutti i nodi successori del grafo sono stati
+calcolati, nel caso pessimo fino a met&agrave; delle immagini intermedie
+potrebbero essere in memoria. Si potrebbe anche trovare un ordinamento
+ottimo tramite un algoritmo di programmazione dinamica la cui
+complessit&agrave; computazionale &egrave; accettabile. Come riferimento
+per gli operatori di miscelazione delle immagini si &egrave; usato il
+sorgente del programma GIMP (file <code>paint_funcs.c</code>).</p>  A
+parte le funzioni di conversione tra gli spazi di colore <small>RGB</small>,
+<small>HSV</small> ed <small>HLS</small> (preso dallo stesso file
+<code>paint_funcs.c</code>), tutto il codice del programma (poco pi&ugrave;
+di 4500 righe di codice) &egrave; stato scritto da zero.</p>
+
+</body>
+</html>

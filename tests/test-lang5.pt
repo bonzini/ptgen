@@ -1,0 +1,5 @@
+// Test function assignment
+
+let FUNC := f(X,Y)=if X < 0.5 then 0 else X-0.5;
+create image from FUNC
+

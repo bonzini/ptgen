@@ -1,0 +1,7 @@
+// Blending a black->blue and yellow->white horizontal gradients results in
+// a dark yellow->white gradient
+
+let SRC1 := create image from red f(X,Y)=0 green f(X,Y)=0 blue f(X,Y)=X;
+let SRC2 := create image from red f(X,Y)=1 green f(X,Y)=1 blue f(X,Y)=X;
+
+apply SRC2 to SRC1 opacity 0.7

@@ -1,0 +1,8 @@
+// This operator is quite complex to describe.  In this example overlaying a
+// green -> purple gradient (SRC2) over a black->white gradient (SRC1) gives a
+// black->dark green->light purple->white gradient.
+
+let SRC1 := create image from red f(X,Y)=X green f(X,Y)=X blue f(X,Y)=X;
+let SRC2 := create image from red f(X,Y)=X green f(X,Y)=1-X blue f(X,Y)=X;
+
+apply SRC2 to SRC1 operation overlay

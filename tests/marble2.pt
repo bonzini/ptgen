@@ -1,0 +1,29 @@
+// Marble (2nd version, makes the idea more apparent)
+
+// The basic idea is that the sine function creates a series of
+// vertical stripes which get twisted around by the turbulance to
+// look like veins in marble.  MARB_PERIOD determines the space
+// between the initial marble veins which get perturbed into the twisty
+// veins. MARB_POWER acts like a contrast term to the texture,
+// the higher the value, the stronger the edges of the veins are. A
+// small MARB_POWER gives a smoother function. MARB_SCALE
+// determines the twistiness of the veins of marble, the higher the
+// number, the more the marble veins are allowed to drift from their
+// original position.  Also for stars (with a mostly black palette).
+
+let MARB_SCALE := 1;
+let MARB_POWER := 4.5;
+let MARB_PERIOD := 0.3;
+
+let TURBULENCE_PIC := create perlin noise scale MARB_SCALE;
+let X_PIC := create image from f(X,Y)=X;
+let Y_PIC := create image from f(X,Y)=Y;
+
+let MARBLE_FUNCTION := f(DELTA,X,Y) =
+  abs (sin (pi * (Y / MARB_PERIOD - MARB_POWER * DELTA)));
+
+apply MARBLE_FUNCTION to
+  (create image from
+    red TURBULENCE_PIC
+    green X_PIC
+    blue Y_PIC);

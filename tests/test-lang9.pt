@@ -1,0 +1,5 @@
+// Test built-in functions as function arguments
+
+let MULTI10 := f(X)=frac(10*X);
+
+create image from f(X,Y)=MULTI10(X) * MULTI10(Y);

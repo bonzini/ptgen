@@ -1,0 +1,7 @@
+// SRC2 is simply grey, so applying its saturation turns SRC1 (black->yellow)
+// into a black->white gradient
+
+let SRC1 := create image from red f(X,Y)=X green f(X,Y)=X blue f(X,Y)=0;
+let SRC2 := create image from f(X,Y)=0.5;
+
+apply SRC2 to SRC1 operation replace saturation

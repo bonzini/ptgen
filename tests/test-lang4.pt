@@ -1,0 +1,5 @@
+// Test variable assignment
+
+let MATRIX := [[1,2,3] [4,5,6]];
+create noise
+

@@ -1,0 +1,5 @@
+// Test variable assignment
+
+let VAR := 256;
+create noise
+

@@ -1,0 +1,3 @@
+// Test XOR operator
+
+create image from f(X,Y)= if X < 0.5 xor Y < 0.5 then 0 else 1;

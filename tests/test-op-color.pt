@@ -1,0 +1,8 @@
+// Remember that the color operator works on HLS values.  So applying
+// a yellow color on a black->white gradient results in black->yellow->white
+// (because high lightness values result in the color turning white).
+
+let SRC1 := create image from red f(X,Y)=X green f(X,Y)=X blue f(X,Y)=X;
+let SRC2 := create image from red f(X,Y)=1 green f(X,Y)=1 blue f(X,Y)=0;
+
+apply SRC2 to SRC1 operation replace color

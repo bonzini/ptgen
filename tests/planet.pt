@@ -1,0 +1,31 @@
+let HEIGHTS :=               [0,0.2,0.4,0.5,0.5,0.6,0.6, 0.9, 0.9,1];
+let MAP := create perlin noise scale 2 output range
+	red   map HEIGHTS to [1,1  ,0,  0,  0.3,0.7,0.75,0.55,0.6,1]
+	green map HEIGHTS to [1,1  ,0,  0,  0.3,0.7,0.55,0.35,0.6,1]
+	blue  map HEIGHTS to [1,1  ,0.5,0.5,0.3,0.7,0.2, 0,   0.6,1];
+
+let SHADOW := create image from f(X,Y)=1-max(cos(Y*pi),0);
+
+let SHADED := apply SHADOW to MAP operation multiply;
+
+// x = cos(theta) * sin(phi)
+// y = cos(theta) * cos(phi)
+// z = sin(theta)
+
+let PHI := f(X,Y,Z)=atan2(X,Y);
+let THETA := f(X,Y,Z)=atan2(hypot(X,Y),Z);
+let Y := f(X,Z)=sqrt(1-sqr(X)-sqr(Z));
+
+let SPHERE := apply x f(XX,ZZ)=(
+	 X := 2*XX-1; Z := 2*ZZ-1;
+	 if hypot(X,Z)>1 then 0 else 0.5+THETA(X,Y(X,Z),Z)/pi/2)
+      y f(XX,ZZ)=(
+	 X := 2*XX-1; Z := 2*ZZ-1;
+	 if hypot(X,Z)>1 then 0 else 0.5+PHI(X,Y(X,Z),Z)/pi/2)
+      to SHADED;
+
+let STARS := create image from f(XX,ZZ)=(
+	 X := 2*XX-1; Z := 2*ZZ-1;
+	 if hypot(X,Z)>1 and rand(1) > 0.995 then rand(1)/2+0.5 else 0);
+
+apply STARS to SPHERE operation add

@@ -1,0 +1,15 @@
+let BASE := create image from f(X,Y)=min(tile(2*X),tile(2*Y));
+
+let ANGLE := f(X,Y)=8*hypot(X,Y);
+
+let WHIRLY := apply
+  x f(X,Y)=(XX:=X-0.5; YY:=Y-0.5; A:=ANGLE(XX,YY); 0.5+cos(A)*XX-sin(A)*YY)
+  y f(X,Y)=(XX:=X-0.5; YY:=Y-0.5; A:=ANGLE(XX,YY); 0.5+sin(A)*XX+cos(A)*YY)
+  to BASE;
+
+apply
+  red map[0,0.3,0.8,1] to[0,0,0.8,1]
+  green map[0,0.3,0.8,1] to [0,0,1,1]
+  blue map[0,0.3,0.8,1] to [0,0.8,1,1]
+  to WHIRLY;
+

@@ -1,0 +1,8 @@
+// The red component is 0-0 = 0, green is 1-0 = 1, blue goes from 0.5 to -0.5.
+// Keeping the absolute value of the blue component gives 0.5->0->0.5 so we
+// have a cyan->green->cyan gradient
+
+let SRC1 := create image from red f(X,Y)=0 green f(X,Y)=1 blue f(X,Y)=0.5;
+let SRC2 := create image from red f(X,Y)=0 green f(X,Y)=0 blue f(X,Y)=X;
+
+apply SRC2 to SRC1 operation difference

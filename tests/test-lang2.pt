@@ -1,0 +1,6 @@
+// Test variable assignment
+
+let VAR := if 256 < 3 then (while 1 < 2 do 5) else 1;
+
+create noise
+

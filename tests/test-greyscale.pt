@@ -1,0 +1,7 @@
+// Remapping a red white noise to greyscale makes the image a bit darker
+
+let NOISE := create noise output range red map [0,1] to [0,0]
+				       green map [0,1] to [0,1]
+				       blue map [0,1] to [0,0];
+
+create greyscale image from NOISE

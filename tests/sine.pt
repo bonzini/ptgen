@@ -1,0 +1,18 @@
+let BASE := create image from f(X,Y)=(sin(pi*4*X)+cos(pi*7*Y)+2)/4;
+
+//let DISTORT := apply
+//  x f(X,Y)=(XX := X+sin(3*Y); if XX >= 0 and XX < 1 then XX else frac(-XX))
+//  y f(X,Y)=(YY := Y+cos(3*X); if YY >= 0 and YY < 1 then YY else frac(-YY))
+//  to BASE;
+
+let DISTORT := apply
+  x f(X,Y)=tile(X+sin(3*Y))
+  y f(X,Y)=tile(Y+cos(3*X))
+  to BASE;
+
+apply
+  red map[0,0.3,0.8,1] to [0,0,1,1]
+  green map[0,0.3,0.8,1] to[0,0,0.8,1]
+  blue map[0,0.3,0.8,1] to [0,0.5,0.5,0]
+  to DISTORT;
+

@@ -1,0 +1,9 @@
+// This is the inverse of multiplication, so it always produces a lighter
+// or equal component than the sources.  In this case we get a grey->white
+// gradient, where the grey on the left is given by 0.5 and the white on
+// the right is given by X in the formulas below.
+
+let SRC1 := create image from red f(X,Y)=X green f(X,Y)=X blue f(X,Y)=X;
+let SRC2 := create image from red f(X,Y)=X green f(X,Y)=1-X blue f(X,Y)=X;
+
+apply SRC2 to SRC1 operation screen

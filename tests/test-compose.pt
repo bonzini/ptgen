@@ -1,0 +1,7 @@
+// Compose three different white noise images to obtain colored white noise
+
+let RED_NOISE := create noise;
+let GREEN_NOISE := create noise;
+let BLUE_NOISE := create noise;
+
+create image from red RED_NOISE green GREEN_NOISE blue BLUE_NOISE

@@ -1,0 +1,12 @@
+// Stars are obtained by drawing only a few random points.
+// The color of the star is given by Perlin noise.
+
+let NOISE := create noise output range map [0,0.99,1] to [0,0,1];
+		    
+let COLOR := create perlin noise output range
+  red   map [0,0.3,0.6,1] to [0.7,  1,  1,1]
+  green map [0,0.3,0.6,1] to [0.7,0.7,  1,1]
+  blue  map [0,0.3,0.6,1] to [0.7,0.7,0.7,1];
+
+apply COLOR to NOISE operation multiply
+

@@ -1,0 +1,6 @@
+// Applying a yellow hue on a black->blue gradient gives black->yellow
+
+let SRC1 := create image from red f(X,Y)=0 green f(X,Y)=0 blue f(X,Y)=X;
+let SRC2 := create image from red f(X,Y)=1 green f(X,Y)=1 blue f(X,Y)=0;
+
+apply SRC2 to SRC1 operation replace hue

@@ -1,0 +1,7 @@
+// Subtraction results in saturation of the 1-X*2 term, so the cyan->green
+// gradient saturates at half picture and the right half is homogenously green.
+
+let SRC1 := create image from red f(X,Y)=0 green f(X,Y)=1 blue f(X,Y)=1;
+let SRC2 := create image from red f(X,Y)=1 green f(X,Y)=0 blue f(X,Y)=X*2;
+
+apply SRC2 to SRC1 operation subtract

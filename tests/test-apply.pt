@@ -1,0 +1,10 @@
+// Take a top-left / bottom-right gradient and mirror it.
+// The result is a diamond shape.
+
+let PING_PONG := map [0,0.5,1]
+		 to  [0,1,  0];
+
+apply
+  x f(X,Y)=PING_PONG(X)
+  y f(X,Y)=PING_PONG(Y)
+  to (create image from f(X,Y)=(X+Y)/2)

@@ -1,0 +1,8 @@
+let BASE := create image from f(X,Y)=min(tile(2*X),tile(2*Y));
+
+apply
+  red map[0,0.3,0.8,1] to[0,0,0.8,1]
+  green map[0,0.3,0.8,1] to [0,0,1,1]
+  blue map[0,0.3,0.8,1] to [0,0.8,1,1]
+  to BASE;
+
