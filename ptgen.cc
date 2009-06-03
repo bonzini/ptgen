@@ -9,6 +9,7 @@
 #include <ctime>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <sstream>
 
 using std::istringstream;
@@ -58,8 +59,8 @@ usage(int exit_status)
 int
 main (int argc, char **argv)
 {
-  char *output_filename = NULL;
-  char *default_output_filename = "ptgen.ppm";
+  const char *output_filename = NULL;
+  const char *default_output_filename = "ptgen.ppm";
   int size = 256;
   int seed = std::time(0);
 

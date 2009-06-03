@@ -7,9 +7,10 @@
 #include "ptgen.h"
 
 #include <stack>
-#include <cstdlib>
+#include <cstring>
 
 using std::stack;
+using std::memcpy;
 
 rng randf;
 
